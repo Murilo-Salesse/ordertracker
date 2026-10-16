@@ -1,0 +1,22 @@
+spring:
+  application:
+    name: ordertracker
+
+  datasource:
+    url: jdbc:sqlite:ordertracker.db
+    driver-class-name: org.sqlite.JDBC
+
+  jpa:
+    database-platform: org.hibernate.community.dialect.SQLiteDialect
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    show-sql: true
