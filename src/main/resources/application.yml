@@ -10,7 +10,7 @@ spring:
     database-platform: org.hibernate.community.dialect.SQLiteDialect
     open-in-view: false
     hibernate:
-      ddl-auto: validate
+      ddl-auto: none
     show-sql: true
     properties:
       hibernate:
@@ -20,3 +20,10 @@ spring:
     enabled: true
     baseline-on-migrate: true
     show-sql: true
+
+api:
+  security:
+    token:
+      secret: "foody-delivery-secret-key"
+      # (86400000ms = 24h)
+      expiration: 86400000
