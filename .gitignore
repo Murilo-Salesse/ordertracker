@@ -1,10 +1,25 @@
 HELP.md
-target/
-.mvn/wrapper/maven-wrapper.jar
+**/target/
+**/.mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
-.env.local
+
+### Environment ###
 .env
+.env.local
+.env.*.local
+
+### Database ###
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+### Frontend ###
+**/node_modules/
+**/dist/
+**/dist-ssr/
+*.local
 
 ### STS ###
 .apt_generated
@@ -16,21 +31,17 @@ target/
 .sts4-cache
 
 ### IntelliJ IDEA ###
-.idea
+.idea/
 *.iws
 *.iml
 *.ipr
 
-# DB #
-*.db
-
 ### NetBeans ###
 /nbproject/private/
 /nbbuild/
-/dist/
 /nbdist/
 /.nb-gradle/
-build/
+**/build/
 !**/src/main/**/build/
 !**/src/test/**/build/
 
