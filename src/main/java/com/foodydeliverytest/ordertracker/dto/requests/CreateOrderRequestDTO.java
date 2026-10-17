@@ -17,8 +17,7 @@ public record CreateOrderRequestDTO(@NotBlank(message = "O nome do cliente é ob
                                     String deliveryAddress,
 
                                     @NotEmpty(message = "O pedido deve conter pelo menos um item")
-                                    @Valid
-                                    List<OrderItemRequestDTO> items
+                                    List<@Valid OrderItemRequestDTO> items
 ) {
 
     public OrderEntity toEntity() {
