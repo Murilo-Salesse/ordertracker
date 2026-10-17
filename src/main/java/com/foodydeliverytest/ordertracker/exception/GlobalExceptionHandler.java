@@ -2,6 +2,7 @@ package com.foodydeliverytest.ordertracker.exception;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -64,6 +65,20 @@ public class GlobalExceptionHandler {
         );
         problemDetail.setTitle("Erro Interno do Servidor");
         problemDetail.setType(URI.create("https://foodtracker.com/errors/internal-server-error"));
+        problemDetail.setProperty("timestamp", Instant.now());
+        return problemDetail;
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ProblemDetail handleHttpMessageNotReadable(org.springframework.http.converter.HttpMessageNotReadableException ex) {
+
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
+                HttpStatus.BAD_REQUEST,
+                "Corpo da requisição inválido ou valor de status não reconhecido. Valores aceitos: RECEBIDO, EM_PREPARO, SAIU_PARA_ENTREGA, ENTREGUE, CANCELADO."
+        );
+
+        problemDetail.setTitle("Erro de Leitura da Requisição");
+        problemDetail.setType(URI.create("https://foodtracker.com/errors/bad-request"));
         problemDetail.setProperty("timestamp", Instant.now());
         return problemDetail;
     }

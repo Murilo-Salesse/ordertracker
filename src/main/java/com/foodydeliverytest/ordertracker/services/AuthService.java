@@ -31,7 +31,7 @@ public class AuthService {
         }
 
         String encodedPassword = passwordEncoder.encode(request.password());
-        UserEntity newUser = new UserEntity(request.name(), request.email(), encodedPassword, "USER");
+        UserEntity newUser = request.toEntity(encodedPassword);
         UserEntity savedUser = userRepository.save(newUser);
         String token = tokenService.generateToken(savedUser);
 

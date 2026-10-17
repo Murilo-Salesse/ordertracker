@@ -24,6 +24,6 @@ spring:
 api:
   security:
     token:
-      secret: "foody-delivery-secret-key"
+      secret: ${JWT_SECRET:dev-only-fallback-secret-key-with-at-least-32-bytes}
       # (86400000ms = 24h)
-      expiration: 86400000
+      expiration: ${JWT_EXPIRATION:86400000}
