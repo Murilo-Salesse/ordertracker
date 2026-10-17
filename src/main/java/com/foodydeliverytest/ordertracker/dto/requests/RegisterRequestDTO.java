@@ -11,13 +11,14 @@ public record RegisterRequestDTO(@NotBlank(message = "O nome é obrigatório")
 
                                  @NotBlank(message = "O e-mail é obrigatório")
                                  @Email(message = "E-mail inválido")
+                                 @Size(max = 150, message = "O e-mail deve ter no máximo 150 caracteres")
                                  String email,
 
                                  @NotBlank(message = "A senha é obrigatória")
-                                 @Size(min = 6, message = "A senha deve ter no mínimo 6 caracteres")
+                                 @Size(min = 6, max = 72, message = "A senha deve ter entre 6 e 72 caracteres")
                                  String password) {
 
     public UserEntity toEntity(String encodedPassword) {
-        return new UserEntity(this.name, this.email, encodedPassword, "USER");
+        return new UserEntity(this.name.trim(), this.email.trim().toLowerCase(), encodedPassword, "USER");
     }
 }

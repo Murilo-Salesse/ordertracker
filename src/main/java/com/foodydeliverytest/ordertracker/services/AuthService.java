@@ -26,7 +26,9 @@ public class AuthService {
 
     @Transactional
     public AuthResponseDTO register(RegisterRequestDTO request) {
-        if (userRepository.existsByEmail(request.email())) {
+        String normalizedEmail = request.email().trim().toLowerCase();
+
+        if (userRepository.existsByEmail(normalizedEmail)) {
             throw new BusinessException("Já existe um usuário cadastrado com este e-mail.", HttpStatus.CONFLICT);
         }
 
@@ -40,7 +42,9 @@ public class AuthService {
 
     @Transactional
     public AuthResponseDTO login(LoginRequestDTO request) {
-        UserEntity user = userRepository.findByEmail(request.email())
+        String normalizedEmail = request.email().trim().toLowerCase();
+
+        UserEntity user = userRepository.findByEmail(normalizedEmail)
                 .orElseThrow(() -> new BusinessException("E-mail ou senha inválidos.", HttpStatus.UNAUTHORIZED));
 
         if (!passwordEncoder.matches(request.password(), user.getPassword())) {

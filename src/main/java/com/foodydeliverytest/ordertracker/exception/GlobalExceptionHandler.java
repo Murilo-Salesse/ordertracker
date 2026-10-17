@@ -4,9 +4,12 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.FieldError;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.net.URI;
 import java.time.Instant;
@@ -56,6 +59,65 @@ public class GlobalExceptionHandler {
         return problemDetail;
     }
 
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ProblemDetail handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
+
+        String detail = String.format(
+                "O parâmetro '%s' recebeu um valor inválido ('%s'). Informe um valor numérico válido.",
+                ex.getName(),
+                ex.getValue()
+        );
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, detail);
+        problemDetail.setTitle("Parâmetro de URL Inválido");
+        problemDetail.setType(URI.create("https://foodtracker.com/errors/invalid-parameter"));
+        problemDetail.setProperty("timestamp", Instant.now());
+        return problemDetail;
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ProblemDetail handleHttpMessageNotReadable(HttpMessageNotReadableException ex) {
+
+        String rawMessage = ex.getMostSpecificCause() != null ? ex.getMostSpecificCause().getMessage() : "";
+        String detail;
+        if (rawMessage.contains("OrderStatus")) {
+            detail = "Valor de status não reconhecido. Valores aceitos: RECEBIDO, EM_PREPARO, SAIU_PARA_ENTREGA, ENTREGUE, CANCELADO.";
+        } else {
+            detail = "Corpo da requisição JSON malformado ou tipo de dado inválido (ex: texto enviado em campo numérico).";
+        }
+
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, detail);
+        problemDetail.setTitle("Erro de Leitura da Requisição");
+        problemDetail.setType(URI.create("https://foodtracker.com/errors/bad-request"));
+        problemDetail.setProperty("timestamp", Instant.now());
+        return problemDetail;
+    }
+
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ProblemDetail handleMethodNotSupported(HttpRequestMethodNotSupportedException ex) {
+
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
+                HttpStatus.METHOD_NOT_ALLOWED,
+                "Método HTTP '" + ex.getMethod() + "' não é suportado para esta rota."
+        );
+        problemDetail.setTitle("Método Não Permitido");
+        problemDetail.setType(URI.create("https://foodtracker.com/errors/method-not-allowed"));
+        problemDetail.setProperty("timestamp", Instant.now());
+        return problemDetail;
+    }
+
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ProblemDetail handleNoResourceFound(NoResourceFoundException ex) {
+
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
+                HttpStatus.NOT_FOUND,
+                "A rota solicitada não foi encontrada."
+        );
+        problemDetail.setTitle("Rota Não Encontrada");
+        problemDetail.setType(URI.create("https://foodtracker.com/errors/not-found"));
+        problemDetail.setProperty("timestamp", Instant.now());
+        return problemDetail;
+    }
+
     @ExceptionHandler(Exception.class)
     public ProblemDetail handleGeneralException(Exception ex) {
 
@@ -65,20 +127,6 @@ public class GlobalExceptionHandler {
         );
         problemDetail.setTitle("Erro Interno do Servidor");
         problemDetail.setType(URI.create("https://foodtracker.com/errors/internal-server-error"));
-        problemDetail.setProperty("timestamp", Instant.now());
-        return problemDetail;
-    }
-
-    @ExceptionHandler(HttpMessageNotReadableException.class)
-    public ProblemDetail handleHttpMessageNotReadable(org.springframework.http.converter.HttpMessageNotReadableException ex) {
-
-        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
-                HttpStatus.BAD_REQUEST,
-                "Corpo da requisição inválido ou valor de status não reconhecido. Valores aceitos: RECEBIDO, EM_PREPARO, SAIU_PARA_ENTREGA, ENTREGUE, CANCELADO."
-        );
-
-        problemDetail.setTitle("Erro de Leitura da Requisição");
-        problemDetail.setType(URI.create("https://foodtracker.com/errors/bad-request"));
         problemDetail.setProperty("timestamp", Instant.now());
         return problemDetail;
     }

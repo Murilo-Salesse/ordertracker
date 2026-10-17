@@ -155,4 +155,22 @@ class OrderControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.title").value("Erro de Leitura da Requisição"));
     }
+
+    @Test
+    @DisplayName("GET /api/orders/{id} - Deve retornar 400 Bad Request quando ID na URL não for numérico")
+    void shouldReturn400WhenPathVariableIdIsNotNumeric() throws Exception {
+        mockMvc.perform(get("/api/orders/abc"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.title").value("Parâmetro de URL Inválido"));
+    }
+
+    @Test
+    @DisplayName("PUT /api/orders/{id}/status - Deve retornar 405 Method Not Allowed para verbo HTTP incorreto")
+    void shouldReturn405WhenHttpMethodIsNotSupported() throws Exception {
+        mockMvc.perform(put("/api/orders/1/status")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"status\": \"EM_PREPARO\"}"))
+                .andExpect(status().isMethodNotAllowed())
+                .andExpect(jsonPath("$.title").value("Método Não Permitido"));
+    }
 }
