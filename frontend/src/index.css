@@ -1,0 +1,41 @@
+@import "tailwindcss";
+
+@layer base {
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+}
+
+@keyframes buttonProgressFill {
+  0% {
+    width: 0%;
+  }
+  40% {
+    width: 65%;
+  }
+  80% {
+    width: 88%;
+  }
+  100% {
+    width: 96%;
+  }
+}
+
+@keyframes modalEnter {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-button-fill {
+  animation: buttonProgressFill 1.8s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.animate-modal-enter {
+  animation: modalEnter 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
