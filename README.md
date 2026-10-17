@@ -1,6 +1,6 @@
 # Foody Delivery — Order Tracker
 
-Sistema full-stack de gestão e rastreamento de pedidos de delivery desenvolvido como desafio técnico para a vaga de Desenvolvedor Full-Stack Pleno na Foody Delivery.
+Sistema full-stack de gestão e rastreamento de pedidos de delivery.
 
 ## Estrutura do Repositório
 
