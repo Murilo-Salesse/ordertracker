@@ -12,8 +12,8 @@ import java.util.Optional;
 public interface OrderRepository extends JpaRepository<OrderEntity, Integer> {
 
     @EntityGraph(attributePaths = "items")
-    List<OrderEntity> findAllByOrderByCreatedAtDesc();
+    List<OrderEntity> findAllByUserIdOrderByCreatedAtDesc(Integer userId);
 
     @EntityGraph(attributePaths = "items")
-    Optional<OrderEntity> findWithItemsById(Integer id);
+    Optional<OrderEntity> findWithItemsByIdAndUserId(Integer id, Integer userId);
 }

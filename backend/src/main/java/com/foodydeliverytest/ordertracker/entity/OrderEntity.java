@@ -25,6 +25,10 @@ public class OrderEntity {
     @Column(nullable = false, length = 30)
     private OrderStatus status;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
+    private UserEntity user;
+
     @OneToMany(mappedBy = "order",
                 cascade = CascadeType.ALL,
                 orphanRemoval = true, fetch = FetchType.LAZY)
@@ -91,6 +95,14 @@ public class OrderEntity {
 
     public void setStatus(OrderStatus status) {
         this.status = status;
+    }
+
+    public UserEntity getUser() {
+        return user;
+    }
+
+    public void setUser(UserEntity user) {
+        this.user = user;
     }
 
     public List<OrderItemEntity> getItems() {

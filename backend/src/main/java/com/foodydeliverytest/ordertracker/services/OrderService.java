@@ -4,11 +4,15 @@ import com.foodydeliverytest.ordertracker.dto.requests.CreateOrderRequestDTO;
 import com.foodydeliverytest.ordertracker.dto.requests.UpdateOrderStatusRequestDTO;
 import com.foodydeliverytest.ordertracker.dto.responses.OrderResponseDTO;
 import com.foodydeliverytest.ordertracker.entity.OrderEntity;
+import com.foodydeliverytest.ordertracker.entity.UserEntity;
 import com.foodydeliverytest.ordertracker.entity.enums.OrderStatus;
 import com.foodydeliverytest.ordertracker.exception.BusinessException;
 import com.foodydeliverytest.ordertracker.exception.ResourceNotFoundException;
 import com.foodydeliverytest.ordertracker.repository.OrderRepository;
 import jakarta.transaction.Transactional;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -24,7 +28,9 @@ public class OrderService {
 
     @Transactional
     public OrderResponseDTO createOrder(CreateOrderRequestDTO request) {
+        UserEntity currentUser = getAuthenticatedUser();
         OrderEntity order = request.toEntity();
+        order.setUser(currentUser);
         OrderEntity savedOrder = orderRepository.save(order);
 
         return OrderResponseDTO.toResponse(savedOrder);
@@ -32,13 +38,14 @@ public class OrderService {
 
     @Transactional
     public List<OrderResponseDTO> listAllOrders() {
-        return orderRepository.findAllByOrderByCreatedAtDesc()
+        UserEntity currentUser = getAuthenticatedUser();
+        return orderRepository.findAllByUserIdOrderByCreatedAtDesc(currentUser.getId())
                 .stream()
                 .map(OrderResponseDTO::toResponse)
                 .toList();
     }
 
-    @Transactional()
+    @Transactional
     public OrderResponseDTO getOrderById(Integer id) {
         OrderEntity order = findOrderOrThrow(id);
 
@@ -60,8 +67,17 @@ public class OrderService {
     }
 
     private OrderEntity findOrderOrThrow(Integer id) {
-        return orderRepository.findWithItemsById(id)
+        UserEntity currentUser = getAuthenticatedUser();
+        return orderRepository.findWithItemsByIdAndUserId(id, currentUser.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Pedido não encontrado com o ID: " + id));
+    }
+
+    private UserEntity getAuthenticatedUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.getPrincipal() instanceof UserEntity user) {
+            return user;
+        }
+        throw new BusinessException("Usuário não autenticado.", HttpStatus.UNAUTHORIZED);
     }
 
 }

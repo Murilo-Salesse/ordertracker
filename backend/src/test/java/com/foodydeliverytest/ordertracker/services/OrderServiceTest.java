@@ -5,16 +5,22 @@ import com.foodydeliverytest.ordertracker.dto.requests.OrderItemRequestDTO;
 import com.foodydeliverytest.ordertracker.dto.requests.UpdateOrderStatusRequestDTO;
 import com.foodydeliverytest.ordertracker.dto.responses.OrderResponseDTO;
 import com.foodydeliverytest.ordertracker.entity.OrderEntity;
+import com.foodydeliverytest.ordertracker.entity.UserEntity;
 import com.foodydeliverytest.ordertracker.entity.enums.OrderStatus;
 import com.foodydeliverytest.ordertracker.exception.BusinessException;
 import com.foodydeliverytest.ordertracker.exception.ResourceNotFoundException;
 import com.foodydeliverytest.ordertracker.repository.OrderRepository;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -33,8 +39,23 @@ class OrderServiceTest {
     @InjectMocks
     private OrderService orderService;
 
+    private UserEntity authenticatedUser;
+
+    @BeforeEach
+    void setUp() {
+        authenticatedUser = new UserEntity("Operador Teste", "operador@foody.com", "hash", "USER");
+        ReflectionTestUtils.setField(authenticatedUser, "id", 10);
+        var auth = new UsernamePasswordAuthenticationToken(authenticatedUser, null, List.of());
+        SecurityContextHolder.getContext().setAuthentication(auth);
+    }
+
+    @AfterEach
+    void tearDown() {
+        SecurityContextHolder.clearContext();
+    }
+
     @Test
-    @DisplayName("Deve criar um pedido com status RECEBIDO e calcular o valor total corretamente")
+    @DisplayName("Deve criar um pedido vinculado ao usuário autenticado com status RECEBIDO e calcular o valor total")
     void shouldCreateOrderSuccessfully() {
         List<OrderItemRequestDTO> items = List.of(
                 new OrderItemRequestDTO("Hambúrguer", 2, new BigDecimal("30.00")),
@@ -46,7 +67,11 @@ class OrderServiceTest {
                 items
         );
 
-        when(orderRepository.save(any(OrderEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(orderRepository.save(any(OrderEntity.class))).thenAnswer(invocation -> {
+            OrderEntity saved = invocation.getArgument(0);
+            assertEquals(authenticatedUser, saved.getUser());
+            return saved;
+        });
 
         OrderResponseDTO response = orderService.createOrder(request);
 
@@ -61,22 +86,23 @@ class OrderServiceTest {
     }
 
     @Test
-    @DisplayName("Deve listar todos os pedidos ordenados por data de criação")
+    @DisplayName("Deve listar apenas os pedidos do usuário autenticado ordenados por data de criação")
     void shouldListAllOrders() {
         OrderEntity order = new OrderEntity("Maria", "Av. Brasil, 500");
-        when(orderRepository.findAllByOrderByCreatedAtDesc()).thenReturn(List.of(order));
+        when(orderRepository.findAllByUserIdOrderByCreatedAtDesc(10)).thenReturn(List.of(order));
 
         List<OrderResponseDTO> result = orderService.listAllOrders();
 
         assertEquals(1, result.size());
         assertEquals("Maria", result.get(0).customerName());
+        verify(orderRepository, times(1)).findAllByUserIdOrderByCreatedAtDesc(10);
     }
 
     @Test
-    @DisplayName("Deve buscar pedido por ID com sucesso")
+    @DisplayName("Deve buscar pedido por ID pertencente ao usuário autenticado com sucesso")
     void shouldGetOrderByIdSuccessfully() {
         OrderEntity order = new OrderEntity("Carlos", "Rua A, 10");
-        when(orderRepository.findWithItemsById(1)).thenReturn(Optional.of(order));
+        when(orderRepository.findWithItemsByIdAndUserId(1, 10)).thenReturn(Optional.of(order));
 
         OrderResponseDTO response = orderService.getOrderById(1);
 
@@ -85,20 +111,20 @@ class OrderServiceTest {
     }
 
     @Test
-    @DisplayName("Deve lançar ResourceNotFoundException quando pedido não existir")
+    @DisplayName("Deve lançar ResourceNotFoundException quando pedido não existir ou pertencer a outro usuário")
     void shouldThrowResourceNotFoundWhenOrderDoesNotExist() {
-        when(orderRepository.findWithItemsById(99)).thenReturn(Optional.empty());
+        when(orderRepository.findWithItemsByIdAndUserId(99, 10)).thenReturn(Optional.empty());
 
         assertThrows(ResourceNotFoundException.class, () -> orderService.getOrderById(99));
     }
 
     @Test
-    @DisplayName("Deve atualizar o status do pedido com sucesso")
+    @DisplayName("Deve atualizar o status do pedido pertencente ao usuário com sucesso")
     void shouldUpdateOrderStatusSuccessfully() {
         OrderEntity order = new OrderEntity("Ana", "Rua B, 20");
         UpdateOrderStatusRequestDTO request = new UpdateOrderStatusRequestDTO(OrderStatus.EM_PREPARO);
 
-        when(orderRepository.findWithItemsById(1)).thenReturn(Optional.of(order));
+        when(orderRepository.findWithItemsByIdAndUserId(1, 10)).thenReturn(Optional.of(order));
         when(orderRepository.save(any(OrderEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         OrderResponseDTO response = orderService.updateOrderStatus(1, request);
@@ -114,7 +140,7 @@ class OrderServiceTest {
         order.setStatus(OrderStatus.ENTREGUE);
         UpdateOrderStatusRequestDTO request = new UpdateOrderStatusRequestDTO(OrderStatus.CANCELADO);
 
-        when(orderRepository.findWithItemsById(1)).thenReturn(Optional.of(order));
+        when(orderRepository.findWithItemsByIdAndUserId(1, 10)).thenReturn(Optional.of(order));
 
         BusinessException ex = assertThrows(BusinessException.class, () -> orderService.updateOrderStatus(1, request));
 
@@ -129,11 +155,20 @@ class OrderServiceTest {
         order.setStatus(OrderStatus.CANCELADO);
         UpdateOrderStatusRequestDTO request = new UpdateOrderStatusRequestDTO(OrderStatus.EM_PREPARO);
 
-        when(orderRepository.findWithItemsById(1)).thenReturn(Optional.of(order));
+        when(orderRepository.findWithItemsByIdAndUserId(1, 10)).thenReturn(Optional.of(order));
 
         BusinessException ex = assertThrows(BusinessException.class, () -> orderService.updateOrderStatus(1, request));
 
         assertTrue(ex.getMessage().contains("cancelado"));
         verify(orderRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Deve lançar BusinessException (401) quando não houver usuário autenticado no contexto")
+    void shouldThrowBusinessExceptionWhenUserIsNotAuthenticated() {
+        SecurityContextHolder.clearContext();
+
+        BusinessException ex = assertThrows(BusinessException.class, () -> orderService.listAllOrders());
+        assertEquals("Usuário não autenticado.", ex.getMessage());
     }
 }
