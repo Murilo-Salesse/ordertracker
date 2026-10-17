@@ -1,4 +1,4 @@
-# Foody Delivery — Order Tracker
+# Tracker Delivery — Order Tracker
 
 Sistema full-stack de gestão e rastreamento de pedidos de delivery.
 
