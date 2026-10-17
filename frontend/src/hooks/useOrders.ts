@@ -1,25 +1,39 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import toast from 'react-hot-toast'
 import { orderService } from '../services/orderService'
 import { CreateOrderPayload, Order, OrderStatus } from '../types'
+
+export type OrderSortOption = 'newest' | 'oldest' | 'highest_value'
 
 export function useOrders() {
   const [orders, setOrders] = useState<Order[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isRefreshing, setIsRefreshing] = useState(false)
+  const [refreshCycle, setRefreshCycle] = useState(0)
   const [updatingOrderId, setUpdatingOrderId] = useState<number | null>(null)
   const [selectedStatus, setSelectedStatus] = useState<OrderStatus | 'ALL'>('ALL')
+  const [sortBy, setSortBy] = useState<OrderSortOption>('newest')
   const [searchTerm, setSearchTerm] = useState('')
+  const hasFetchedInitialRef = useRef(false)
 
-  const fetchOrders = useCallback(async (silent = false) => {
+  const fetchOrders = useCallback(async (manualRefresh = false) => {
     try {
-      if (silent) {
+      if (manualRefresh) {
         setIsRefreshing(true)
       } else {
         setIsLoading(true)
       }
-      const data = await orderService.getAll()
+
+      const [data] = await Promise.all([
+        orderService.getAll(),
+        manualRefresh ? new Promise(resolve => setTimeout(resolve, 450)) : Promise.resolve()
+      ])
+
       setOrders(data)
+      if (manualRefresh) {
+        setRefreshCycle(prev => prev + 1)
+        toast.success('Painel de pedidos atualizado!')
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erro ao carregar pedidos.'
       toast.error(message)
@@ -30,7 +44,9 @@ export function useOrders() {
   }, [])
 
   useEffect(() => {
-    fetchOrders()
+    if (hasFetchedInitialRef.current) return
+    hasFetchedInitialRef.current = true
+    fetchOrders(false)
   }, [fetchOrders])
 
   const createOrder = useCallback(async (payload: CreateOrderPayload) => {
@@ -73,7 +89,7 @@ export function useOrders() {
 
   const filteredOrders = useMemo(() => {
     const normalizedQuery = searchTerm.trim().toLowerCase()
-    return orders.filter(order => {
+    const filtered = orders.filter(order => {
       const matchesStatus = selectedStatus === 'ALL' || order.status === selectedStatus
       if (!matchesStatus) return false
       if (!normalizedQuery) return true
@@ -83,7 +99,16 @@ export function useOrders() {
       const matchesAddress = order.deliveryAddress.toLowerCase().includes(normalizedQuery)
       return matchesId || matchesCustomer || matchesAddress
     })
-  }, [orders, selectedStatus, searchTerm])
+
+    return [...filtered].sort((a, b) => {
+      if (sortBy === 'highest_value') {
+        return b.totalAmount - a.totalAmount
+      }
+      const timeA = new Date(a.createdAt.replace(' ', 'T')).getTime() || a.id
+      const timeB = new Date(b.createdAt.replace(' ', 'T')).getTime() || b.id
+      return sortBy === 'oldest' ? timeA - timeB : timeB - timeA
+    })
+  }, [orders, selectedStatus, searchTerm, sortBy])
 
   return {
     orders,
@@ -91,10 +116,13 @@ export function useOrders() {
     statusCounts,
     isLoading,
     isRefreshing,
+    refreshCycle,
     updatingOrderId,
     selectedStatus,
+    sortBy,
     searchTerm,
     setSelectedStatus,
+    setSortBy,
     setSearchTerm,
     fetchOrders,
     createOrder,

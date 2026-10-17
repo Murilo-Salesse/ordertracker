@@ -1,4 +1,4 @@
-import { Calendar, MapPin, Package, User, X } from 'lucide-react'
+import { Calendar, CheckCircle2, ChefHat, ClipboardList, MapPin, Package, Truck, User, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
 import { orderService } from '../../services/orderService'
@@ -19,6 +19,13 @@ const availableStatuses: { value: OrderStatus; label: string }[] = [
   { value: 'SAIU_PARA_ENTREGA', label: 'Saiu para entrega' },
   { value: 'ENTREGUE', label: 'Entregue' },
   { value: 'CANCELADO', label: 'Cancelado' }
+]
+
+const trackingSteps: { key: OrderStatus; label: string; icon: typeof ClipboardList }[] = [
+  { key: 'RECEBIDO', label: 'Recebido', icon: ClipboardList },
+  { key: 'EM_PREPARO', label: 'Em preparo', icon: ChefHat },
+  { key: 'SAIU_PARA_ENTREGA', label: 'Em rota', icon: Truck },
+  { key: 'ENTREGUE', label: 'Entregue', icon: CheckCircle2 }
 ]
 
 export function OrderDetailsModal({
@@ -64,6 +71,9 @@ export function OrderDetailsModal({
   if (orderId === null) return null
 
   const isFinalized = order?.status === 'ENTREGUE' || order?.status === 'CANCELADO'
+  const currentStepIndex = order
+    ? trackingSteps.findIndex(step => step.key === order.status)
+    : -1
 
   const handleSaveStatus = async () => {
     if (!order || selectedStatus === order.status) return
@@ -79,7 +89,7 @@ export function OrderDetailsModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/50 backdrop-blur-xs"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/50 backdrop-blur-xs animate-fade-in"
       role="dialog"
       aria-modal="true"
       aria-labelledby="order-details-title"
@@ -88,7 +98,7 @@ export function OrderDetailsModal({
         <div className="px-6 py-4 border-b border-stone-200 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <h2 id="order-details-title" className="text-base font-semibold text-stone-900">
-              Detalhes do Pedido #{orderId}
+              Rastreamento do Pedido #{orderId}
             </h2>
             {order && <StatusBadge status={order.status} label={order.statusDescription} />}
           </div>
@@ -109,6 +119,38 @@ export function OrderDetailsModal({
           </div>
         ) : (
           <div className="p-6 space-y-5">
+            {order.status !== 'CANCELADO' && (
+              <div className="grid grid-cols-4 gap-2 pt-1 pb-2">
+                {trackingSteps.map((step, index) => {
+                  const Icon = step.icon
+                  const isDone = currentStepIndex >= index
+                  const isCurrent = currentStepIndex === index
+                  return (
+                    <div key={step.key} className="flex flex-col items-center text-center">
+                      <div
+                        className={`h-9 w-9 rounded-xl flex items-center justify-center transition-all ${
+                          isCurrent
+                            ? 'bg-orange-600 text-white ring-4 ring-orange-500/20'
+                            : isDone
+                              ? 'bg-orange-100 text-orange-700'
+                              : 'bg-stone-100 text-stone-400'
+                        }`}
+                      >
+                        <Icon className="h-4 w-4" aria-hidden="true" />
+                      </div>
+                      <span
+                        className={`text-[11px] mt-1.5 font-medium ${
+                          isDone ? 'text-stone-900' : 'text-stone-400'
+                        }`}
+                      >
+                        {step.label}
+                      </span>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+
             <div className="bg-stone-50 rounded-xl p-4 border border-stone-200/80 space-y-2.5 text-xs">
               <div className="flex items-center gap-2 text-stone-800">
                 <User className="h-4 w-4 text-stone-400 shrink-0" aria-hidden="true" />

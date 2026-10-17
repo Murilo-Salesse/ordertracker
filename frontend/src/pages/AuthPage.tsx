@@ -1,19 +1,23 @@
-import { Lock, Mail, PackageCheck, User } from 'lucide-react'
+import { Eye, EyeOff, Lock, Mail, PackageCheck, User } from 'lucide-react'
 import { FormEvent, useState } from 'react'
 import toast from 'react-hot-toast'
 import { LoadingButton } from '../components/ui/LoadingButton'
 import { useAuth } from '../contexts/AuthContext'
+import { STORAGE_REMEMBER_EMAIL_KEY } from '../services/api'
 
 export function AuthPage() {
   const { signIn, signUp } = useAuth()
   const [mode, setMode] = useState<'login' | 'register'>('login')
   const [name, setName] = useState('')
-  const [email, setEmail] = useState('')
+  const [email, setEmail] = useState(() => localStorage.getItem(STORAGE_REMEMBER_EMAIL_KEY) || '')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [rememberMe, setRememberMe] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   const handleToggleMode = (nextMode: 'login' | 'register') => {
     setMode(nextMode)
+    setShowPassword(false)
   }
 
   const handleSubmit = async (event: FormEvent) => {
@@ -35,7 +39,7 @@ export function AuthPage() {
     setIsSubmitting(true)
     try {
       if (mode === 'login') {
-        await signIn({ email: email.trim(), password })
+        await signIn({ email: email.trim(), password }, rememberMe)
       } else {
         await signUp({ name: name.trim(), email: email.trim(), password })
       }
@@ -49,7 +53,7 @@ export function AuthPage() {
 
   return (
     <div className="min-h-screen bg-stone-50 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
+      <div className="sm:mx-auto sm:w-full sm:max-w-md animate-fade-up">
         <div className="flex justify-center">
           <div className="h-12 w-12 rounded-2xl bg-orange-600 flex items-center justify-center text-white shadow-sm">
             <PackageCheck className="h-6 w-6" aria-hidden="true" />
@@ -63,7 +67,7 @@ export function AuthPage() {
         </p>
       </div>
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+      <div style={{ animationDelay: '70ms' }} className="mt-8 sm:mx-auto sm:w-full sm:max-w-md animate-fade-up">
         <div className="bg-white py-7 px-6 shadow-xs rounded-2xl border border-stone-200/90 sm:px-8">
           <div className="grid grid-cols-2 p-1 bg-stone-100 rounded-xl mb-6" role="tablist">
             <button
@@ -143,17 +147,43 @@ export function AuthPage() {
                 <Lock className="h-4 w-4 text-stone-400 absolute left-3.5 top-3" aria-hidden="true" />
                 <input
                   id="auth-password"
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   required
                   minLength={6}
                   autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
                   placeholder="Mínimo de 6 caracteres"
                   value={password}
                   onChange={e => setPassword(e.target.value)}
-                  className="w-full rounded-xl border border-stone-300 pl-10 pr-3.5 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500/20"
+                  className="w-full rounded-xl border border-stone-300 pl-10 pr-10 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500/20"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(prev => !prev)}
+                  aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                  className="absolute right-3 top-2.5 p-0.5 text-stone-400 hover:text-stone-700 rounded-md transition-colors cursor-pointer"
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" aria-hidden="true" />
+                  ) : (
+                    <Eye className="h-4 w-4" aria-hidden="true" />
+                  )}
+                </button>
               </div>
             </div>
+
+            {mode === 'login' && (
+              <div className="flex items-center justify-between pt-0.5">
+                <label className="inline-flex items-center gap-2 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={e => setRememberMe(e.target.checked)}
+                    className="h-4 w-4 rounded border-stone-300 text-orange-600 focus:ring-orange-500 cursor-pointer accent-orange-600"
+                  />
+                  <span className="text-xs font-medium text-stone-600">Lembrar de mim</span>
+                </label>
+              </div>
+            )}
 
             <div className="pt-2">
               <LoadingButton

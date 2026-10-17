@@ -1,26 +1,30 @@
 import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import toast from 'react-hot-toast'
 import { authService } from '../services/authService'
-import { clearStoredSession } from '../services/api'
+import {
+  clearStoredSession,
+  STORAGE_REMEMBER_EMAIL_KEY,
+  STORAGE_TOKEN_KEY,
+  STORAGE_USER_KEY
+} from '../services/api'
 import { AuthUser, LoginPayload, RegisterPayload } from '../types'
 
 interface AuthContextData {
   user: AuthUser | null
   isAuthenticated: boolean
-  signIn: (payload: LoginPayload) => Promise<void>
+  signIn: (payload: LoginPayload, rememberMe?: boolean) => Promise<void>
   signUp: (payload: RegisterPayload) => Promise<void>
   signOut: () => void
 }
-
-const STORAGE_TOKEN_KEY = '@foody:token'
-const STORAGE_USER_KEY = '@foody:user'
 
 const AuthContext = createContext<AuthContextData | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(() => {
-    const savedUser = localStorage.getItem(STORAGE_USER_KEY)
-    const savedToken = localStorage.getItem(STORAGE_TOKEN_KEY)
+    const savedUser =
+      localStorage.getItem(STORAGE_USER_KEY) || sessionStorage.getItem(STORAGE_USER_KEY)
+    const savedToken =
+      localStorage.getItem(STORAGE_TOKEN_KEY) || sessionStorage.getItem(STORAGE_TOKEN_KEY)
     if (!savedUser || !savedToken) return null
     try {
       return JSON.parse(savedUser) as AuthUser
@@ -29,9 +33,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   })
 
-  const saveSession = useCallback((token: string, nextUser: AuthUser) => {
-    localStorage.setItem(STORAGE_TOKEN_KEY, token)
-    localStorage.setItem(STORAGE_USER_KEY, JSON.stringify(nextUser))
+  const saveSession = useCallback((token: string, nextUser: AuthUser, rememberMe = true) => {
+    clearStoredSession()
+    const storage = rememberMe ? localStorage : sessionStorage
+    storage.setItem(STORAGE_TOKEN_KEY, token)
+    storage.setItem(STORAGE_USER_KEY, JSON.stringify(nextUser))
+
+    if (rememberMe) {
+      localStorage.setItem(STORAGE_REMEMBER_EMAIL_KEY, nextUser.email)
+    } else {
+      localStorage.removeItem(STORAGE_REMEMBER_EMAIL_KEY)
+    }
+
     setUser(nextUser)
   }, [])
 
@@ -49,15 +62,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => window.removeEventListener('auth:unauthorized', handleUnauthorized)
   }, [])
 
-  const signIn = useCallback(async (payload: LoginPayload) => {
+  const signIn = useCallback(async (payload: LoginPayload, rememberMe = true) => {
     const data = await authService.login(payload)
-    saveSession(data.token, { name: data.name, email: data.email })
+    saveSession(data.token, { name: data.name, email: data.email }, rememberMe)
     toast.success(`Bem-vindo de volta, ${data.name.split(' ')[0]}!`)
   }, [saveSession])
 
   const signUp = useCallback(async (payload: RegisterPayload) => {
     const data = await authService.register(payload)
-    saveSession(data.token, { name: data.name, email: data.email })
+    saveSession(data.token, { name: data.name, email: data.email }, true)
     toast.success('Conta criada com sucesso!')
   }, [saveSession])
 

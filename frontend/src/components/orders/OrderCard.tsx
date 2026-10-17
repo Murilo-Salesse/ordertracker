@@ -7,9 +7,11 @@ import { StatusBadge } from '../ui/StatusBadge'
 
 interface OrderCardProps {
   order: Order
+  index?: number
   isUpdating: boolean
   onUpdateStatus: (orderId: number, nextStatus: OrderStatus) => Promise<unknown>
   onSelectOrder: (orderId: number) => void
+  onOpenMap: (order: Order) => void
 }
 
 const nextStatusFlow: Partial<Record<OrderStatus, { next: OrderStatus; label: string }>> = {
@@ -22,9 +24,11 @@ const progressSteps: OrderStatus[] = ['RECEBIDO', 'EM_PREPARO', 'SAIU_PARA_ENTRE
 
 export function OrderCard({
   order,
+  index = 0,
   isUpdating,
   onUpdateStatus,
-  onSelectOrder
+  onSelectOrder,
+  onOpenMap
 }: OrderCardProps) {
   const [pendingTargetStatus, setPendingTargetStatus] = useState<OrderStatus | null>(null)
   const transition = nextStatusFlow[order.status]
@@ -41,7 +45,10 @@ export function OrderCard({
   }
 
   return (
-    <article className="bg-white rounded-2xl border border-stone-200/90 shadow-2xs hover:shadow-md hover:border-stone-300 transition-all duration-200 flex flex-col justify-between p-5">
+    <article
+      style={{ animationDelay: `${Math.min(index * 45, 300)}ms` }}
+      className="animate-fade-up bg-white rounded-2xl border border-stone-200/90 shadow-2xs hover:shadow-md hover:-translate-y-0.5 hover:border-stone-300 transition-all duration-200 flex flex-col justify-between p-5"
+    >
       <div>
         <div className="flex items-start justify-between gap-3 mb-3">
           <div className="flex items-center gap-2">
@@ -70,8 +77,8 @@ export function OrderCard({
         {order.status !== 'CANCELADO' && (
           <div className="mb-4" aria-label="Progresso do pedido">
             <div className="grid grid-cols-4 gap-1.5">
-              {progressSteps.map((step, index) => {
-                const isCompleted = currentStepIndex >= index
+              {progressSteps.map((step, stepIdx) => {
+                const isCompleted = currentStepIndex >= stepIdx
                 return (
                   <div
                     key={step}
@@ -110,18 +117,29 @@ export function OrderCard({
         </div>
       </div>
 
-      <div className="pt-2 border-t border-stone-100 flex flex-wrap items-center justify-between gap-2">
-        <button
-          type="button"
-          onClick={() => onSelectOrder(order.id)}
-          className="inline-flex items-center gap-1.5 text-xs font-medium text-stone-600 hover:text-stone-900 hover:bg-stone-100 px-2.5 py-2 rounded-lg transition-colors cursor-pointer"
-        >
-          <Eye className="h-3.5 w-3.5" aria-hidden="true" />
-          <span>Detalhes</span>
-        </button>
+      <div className="pt-3 border-t border-stone-100 space-y-2.5">
+        <div className="flex items-center gap-1.5">
+          <button
+            type="button"
+            onClick={() => onSelectOrder(order.id)}
+            className="inline-flex items-center gap-1.5 text-xs font-medium text-stone-600 hover:text-stone-900 hover:bg-stone-100 px-2.5 py-1.5 rounded-xl transition-colors cursor-pointer whitespace-nowrap"
+          >
+            <Eye className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+            <span>Detalhes</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onOpenMap(order)}
+            className="inline-flex items-center gap-1.5 text-xs font-medium text-stone-600 hover:text-orange-600 hover:bg-orange-50 px-2.5 py-1.5 rounded-xl transition-colors cursor-pointer whitespace-nowrap"
+          >
+            <MapPin className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+            <span>Ver no mapa</span>
+          </button>
+        </div>
 
         {!isFinalized && (
-          <div className="flex items-center gap-1.5 ml-auto">
+          <div className="flex items-center justify-end gap-2 pt-1">
             <LoadingButton
               type="button"
               variant="danger"
@@ -132,7 +150,7 @@ export function OrderCard({
               onClick={() => handleTransition('CANCELADO')}
               title="Cancelar pedido"
             >
-              <XCircle className="h-3.5 w-3.5" aria-hidden="true" />
+              <XCircle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
               <span>Cancelar</span>
             </LoadingButton>
 
@@ -145,9 +163,10 @@ export function OrderCard({
                 isLoading={isUpdating && pendingTargetStatus === transition.next}
                 loadingText="Atualizando..."
                 onClick={() => handleTransition(transition.next)}
+                className="flex-1"
               >
                 <span>{transition.label}</span>
-                <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
+                <ArrowRight className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
               </LoadingButton>
             )}
           </div>

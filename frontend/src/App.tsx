@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { Toaster } from 'react-hot-toast'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { AuthPage } from './pages/AuthPage'
@@ -5,6 +6,14 @@ import { DashboardPage } from './pages/DashboardPage'
 
 function AppRoutes() {
   const { isAuthenticated } = useAuth()
+
+  useEffect(() => {
+    const targetPath = isAuthenticated ? '/orders' : '/login'
+    if (window.location.pathname !== targetPath) {
+      window.history.replaceState(null, '', targetPath)
+    }
+  }, [isAuthenticated])
+
   return isAuthenticated ? <DashboardPage /> : <AuthPage />
 }
 

@@ -28,11 +28,8 @@ export function CreateOrderModal({
 }: CreateOrderModalProps) {
   const [customerName, setCustomerName] = useState('')
   const [cepInput, setCepInput] = useState('')
-  const [addressNumber, setAddressNumber] = useState('')
   const [deliveryAddress, setDeliveryAddress] = useState('')
-  const [items, setItems] = useState<CreateOrderItemPayload[]>([
-    { name: 'Smash Burger Duplo Bacon', quantity: 1, unitPrice: 36.9 }
-  ])
+  const [items, setItems] = useState<CreateOrderItemPayload[]>([])
   const [customItemName, setCustomItemName] = useState('')
   const [customItemQty, setCustomItemQty] = useState('1')
   const [customItemPrice, setCustomItemPrice] = useState('')
@@ -61,11 +58,7 @@ export function CreateOrderModal({
     if (digits.length === 8) {
       const resolvedAddress = await lookupCep(digits)
       if (resolvedAddress) {
-        setDeliveryAddress(
-          addressNumber.trim()
-            ? `${resolvedAddress}, Nº ${addressNumber.trim()}`
-            : resolvedAddress
-        )
+        setDeliveryAddress(resolvedAddress)
         toast.success('Endereço preenchido via CEP!')
       }
     }
@@ -89,7 +82,7 @@ export function CreateOrderModal({
     const unitPrice = Number.parseFloat(customItemPrice.replace(',', '.'))
 
     if (!trimmedName) {
-      toast.error('Informe o nome do item.')
+      toast.error('Informe o nome ou descrição do item.')
       return
     }
     if (!Number.isInteger(quantity) || quantity < 1) {
@@ -151,9 +144,8 @@ export function CreateOrderModal({
       })
       setCustomerName('')
       setCepInput('')
-      setAddressNumber('')
       setDeliveryAddress('')
-      setItems([{ name: 'Smash Burger Duplo Bacon', quantity: 1, unitPrice: 36.9 }])
+      setItems([])
       onClose()
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erro ao criar pedido.'
@@ -165,19 +157,19 @@ export function CreateOrderModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/50 backdrop-blur-xs overflow-y-auto"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-stone-900/50 backdrop-blur-xs animate-fade-in"
       role="dialog"
       aria-modal="true"
       aria-labelledby="create-order-title"
     >
-      <div className="bg-white rounded-2xl border border-stone-200 shadow-xl w-full max-w-2xl overflow-hidden animate-modal-enter my-auto">
-        <div className="px-6 py-4 border-b border-stone-200 flex items-center justify-between">
-          <div>
-            <h2 id="create-order-title" className="text-lg font-semibold text-stone-900">
-              Novo Pedido
+      <div className="bg-white rounded-t-2xl sm:rounded-2xl border border-stone-200 shadow-xl w-full max-w-2xl max-h-[92vh] sm:max-h-[88vh] flex flex-col overflow-hidden animate-modal-enter">
+        <div className="px-4 sm:px-6 py-3.5 sm:py-4 border-b border-stone-200 flex items-center justify-between gap-3 shrink-0">
+          <div className="min-w-0">
+            <h2 id="create-order-title" className="text-base sm:text-lg font-semibold text-stone-900 truncate">
+              Cadastrar Novo Pedido
             </h2>
-            <p className="text-xs text-stone-500">
-              Preencha os dados do cliente e selecione os itens para entrega
+            <p className="text-xs text-stone-500 truncate">
+              Cliente, endereço de entrega e itens do pedido
             </p>
           </div>
           <button
@@ -185,16 +177,16 @@ export function CreateOrderModal({
             onClick={onClose}
             disabled={isSubmitting}
             aria-label="Fechar modal"
-            className="p-2 rounded-xl text-stone-400 hover:text-stone-700 hover:bg-stone-100 transition-colors cursor-pointer"
+            className="p-2 rounded-xl text-stone-400 hover:text-stone-700 hover:bg-stone-100 transition-colors cursor-pointer shrink-0"
           >
             <X className="h-5 w-5" aria-hidden="true" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-5 max-h-[82vh] overflow-y-auto">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4 sm:space-y-5 overflow-y-auto flex-1">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
             <div className="sm:col-span-2">
-              <label htmlFor="customer-name" className="block text-xs font-medium text-stone-700 mb-1.5">
+              <label htmlFor="customer-name" className="block text-xs font-medium text-stone-700 mb-1">
                 Nome do Cliente *
               </label>
               <input
@@ -209,8 +201,8 @@ export function CreateOrderModal({
             </div>
 
             <div>
-              <label htmlFor="cep-input" className="block text-xs font-medium text-stone-700 mb-1.5">
-                Buscar por CEP <span className="text-stone-400 font-normal">(ViaCEP)</span>
+              <label htmlFor="cep-input" className="block text-xs font-medium text-stone-700 mb-1">
+                CEP <span className="text-stone-400 font-normal">(Autocompletar)</span>
               </label>
               <div className="relative">
                 <input
@@ -233,7 +225,7 @@ export function CreateOrderModal({
           </div>
 
           <div>
-            <label htmlFor="delivery-address" className="block text-xs font-medium text-stone-700 mb-1.5">
+            <label htmlFor="delivery-address" className="block text-xs font-medium text-stone-700 mb-1">
               Endereço de Entrega *
             </label>
             <div className="relative">
@@ -250,48 +242,23 @@ export function CreateOrderModal({
             </div>
           </div>
 
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-medium text-stone-700 inline-flex items-center gap-1.5">
-                <Sparkles className="h-3.5 w-3.5 text-orange-500" aria-hidden="true" />
-                Sugestões rápidas do cardápio (1 clique)
+          <div className="bg-stone-50 p-3.5 sm:p-4 rounded-2xl border border-stone-200/90 space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-0.5">
+              <span className="text-xs font-semibold text-stone-800">
+                Cadastrar Item no Pedido *
+              </span>
+              <span className="text-[11px] text-stone-500">
+                Preencha abaixo ou clique em um atalho rápido
               </span>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {suggestedCatalog.map(preset => (
-                <button
-                  key={preset.name}
-                  type="button"
-                  onClick={() => handleQuickAddItem(preset)}
-                  className="flex items-center justify-between px-3 py-2 rounded-xl border border-stone-200 hover:border-orange-400 hover:bg-orange-50/40 text-left transition-colors cursor-pointer group"
-                >
-                  <div className="min-w-0 pr-2">
-                    <p className="text-xs font-medium text-stone-800 truncate group-hover:text-orange-900">
-                      {preset.name}
-                    </p>
-                    <p className="text-[11px] text-stone-500">
-                      {formatCurrency(preset.unitPrice)}
-                    </p>
-                  </div>
-                  <span className="h-6 w-6 rounded-lg bg-stone-100 group-hover:bg-orange-600 group-hover:text-white text-stone-600 flex items-center justify-center shrink-0 transition-colors">
-                    <Plus className="h-3.5 w-3.5" aria-hidden="true" />
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
 
-          <div className="bg-stone-50 p-3.5 rounded-xl border border-stone-200/80 space-y-3">
-            <p className="text-xs font-medium text-stone-700">
-              Ou adicionar item personalizado
-            </p>
-            <div className="grid grid-cols-1 sm:grid-cols-12 gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-12 gap-2">
               <input
                 type="text"
-                placeholder="Nome do item"
+                placeholder="Nome do item (ex: X-Bacon)"
                 value={customItemName}
                 onChange={e => setCustomItemName(e.target.value)}
-                className="sm:col-span-6 rounded-lg border border-stone-300 bg-white px-3 py-2 text-xs text-stone-900 focus:border-orange-500 focus:outline-none"
+                className="col-span-2 sm:col-span-6 rounded-xl border border-stone-300 bg-white px-3 py-2.5 text-xs text-stone-900 placeholder:text-stone-400 focus:border-orange-500 focus:outline-none"
               />
               <input
                 type="number"
@@ -300,31 +267,55 @@ export function CreateOrderModal({
                 placeholder="Qtd"
                 value={customItemQty}
                 onChange={e => setCustomItemQty(e.target.value)}
-                className="sm:col-span-2 rounded-lg border border-stone-300 bg-white px-3 py-2 text-xs text-stone-900 focus:border-orange-500 focus:outline-none"
+                className="col-span-1 sm:col-span-2 rounded-xl border border-stone-300 bg-white px-3 py-2.5 text-xs text-stone-900 focus:border-orange-500 focus:outline-none"
               />
               <input
                 type="number"
                 step="0.01"
                 min="0.01"
-                placeholder="Preço (R$)"
+                placeholder="Valor (R$)"
                 value={customItemPrice}
                 onChange={e => setCustomItemPrice(e.target.value)}
-                className="sm:col-span-2 rounded-lg border border-stone-300 bg-white px-3 py-2 text-xs text-stone-900 focus:border-orange-500 focus:outline-none"
+                className="col-span-1 sm:col-span-2 rounded-xl border border-stone-300 bg-white px-3 py-2.5 text-xs text-stone-900 focus:border-orange-500 focus:outline-none"
               />
               <button
                 type="button"
                 onClick={handleAddCustomItem}
-                className="sm:col-span-2 bg-stone-900 hover:bg-stone-800 text-white rounded-lg px-3 py-2 text-xs font-medium transition-colors cursor-pointer"
+                className="col-span-2 sm:col-span-2 inline-flex items-center justify-center gap-1 bg-stone-900 hover:bg-stone-800 text-white rounded-xl px-3 py-2.5 text-xs font-medium transition-colors cursor-pointer whitespace-nowrap"
               >
-                Adicionar
+                <Plus className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                <span>Incluir</span>
               </button>
+            </div>
+
+            <div className="pt-1">
+              <span className="text-[11px] font-medium text-stone-500 inline-flex items-center gap-1 mb-2">
+                <Sparkles className="h-3 w-3 text-orange-500 shrink-0" aria-hidden="true" />
+                Atalhos rápidos (opcional):
+              </span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                {suggestedCatalog.map(preset => (
+                  <button
+                    key={preset.name}
+                    type="button"
+                    onClick={() => handleQuickAddItem(preset)}
+                    className="flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-xl bg-white border border-stone-200 hover:border-orange-400 hover:bg-orange-50 text-[11px] font-medium text-stone-700 transition-colors cursor-pointer text-left"
+                  >
+                    <span className="inline-flex items-center gap-1.5 min-w-0">
+                      <Plus className="h-3 w-3 text-orange-600 shrink-0" aria-hidden="true" />
+                      <span className="truncate">{preset.name}</span>
+                    </span>
+                    <span className="text-stone-400 shrink-0">{formatCurrency(preset.unitPrice)}</span>
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
           <div>
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs font-medium text-stone-700">
-                Itens selecionados ({items.length})
+                Itens do Pedido ({items.length})
               </span>
               <span className="text-sm font-bold text-stone-900">
                 Total: {formatCurrency(totalOrderAmount)}
@@ -332,29 +323,29 @@ export function CreateOrderModal({
             </div>
 
             {items.length === 0 ? (
-              <div className="text-center py-4 rounded-xl border border-dashed border-stone-300 text-xs text-stone-500">
-                Nenhum item selecionado. Clique em um item do cardápio acima.
+              <div className="text-center py-5 px-3 rounded-xl border border-dashed border-stone-300 text-xs text-stone-500">
+                Nenhum item adicionado ainda. Cadastre um item acima ou toque em um atalho rápido.
               </div>
             ) : (
               <ul className="divide-y divide-stone-200 border border-stone-200 rounded-xl overflow-hidden">
                 {items.map((item, index) => (
                   <li
                     key={`${item.name}-${index}`}
-                    className="px-3.5 py-2.5 bg-white flex items-center justify-between gap-3 text-xs"
+                    className="px-3.5 py-2.5 bg-white flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs"
                   >
                     <div className="min-w-0">
-                      <p className="font-medium text-stone-900 truncate">{item.name}</p>
+                      <p className="font-medium text-stone-900 break-words sm:truncate">{item.name}</p>
                       <p className="text-stone-500">
                         {formatCurrency(item.unitPrice)} cada
                       </p>
                     </div>
 
-                    <div className="flex items-center gap-2 shrink-0">
+                    <div className="flex items-center justify-between sm:justify-end gap-2 shrink-0 pt-1 sm:pt-0 border-t sm:border-t-0 border-stone-100">
                       <div className="inline-flex items-center rounded-lg border border-stone-200 bg-stone-50">
                         <button
                           type="button"
                           onClick={() => handleQuantityDelta(index, -1)}
-                          className="px-2 py-1 text-stone-600 hover:text-stone-900 cursor-pointer font-semibold"
+                          className="px-2.5 py-1 text-stone-600 hover:text-stone-900 cursor-pointer font-semibold"
                           aria-label="Diminuir quantidade"
                         >
                           -
@@ -365,25 +356,27 @@ export function CreateOrderModal({
                         <button
                           type="button"
                           onClick={() => handleQuantityDelta(index, 1)}
-                          className="px-2 py-1 text-stone-600 hover:text-stone-900 cursor-pointer font-semibold"
+                          className="px-2.5 py-1 text-stone-600 hover:text-stone-900 cursor-pointer font-semibold"
                           aria-label="Aumentar quantidade"
                         >
                           +
                         </button>
                       </div>
 
-                      <span className="w-20 text-right font-semibold text-stone-900">
-                        {formatCurrency(item.quantity * item.unitPrice)}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold text-stone-900 whitespace-nowrap">
+                          {formatCurrency(item.quantity * item.unitPrice)}
+                        </span>
 
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveItem(index)}
-                        className="p-1.5 text-stone-400 hover:text-red-600 rounded-lg transition-colors cursor-pointer"
-                        aria-label={`Remover ${item.name}`}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
-                      </button>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveItem(index)}
+                          className="p-1.5 text-stone-400 hover:text-red-600 rounded-lg transition-colors cursor-pointer"
+                          aria-label={`Remover ${item.name}`}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+                        </button>
+                      </div>
                     </div>
                   </li>
                 ))}
@@ -391,12 +384,12 @@ export function CreateOrderModal({
             )}
           </div>
 
-          <div className="pt-2 border-t border-stone-200 flex items-center justify-end gap-2.5">
+          <div className="pt-3 border-t border-stone-200 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2">
             <button
               type="button"
               onClick={onClose}
               disabled={isSubmitting}
-              className="px-4 py-2.5 rounded-xl border border-stone-300 text-xs sm:text-sm font-medium text-stone-700 hover:bg-stone-50 transition-colors cursor-pointer"
+              className="px-4 py-2.5 rounded-xl border border-stone-300 text-xs sm:text-sm font-medium text-stone-700 hover:bg-stone-50 transition-colors cursor-pointer text-center"
             >
               Cancelar
             </button>
@@ -407,7 +400,7 @@ export function CreateOrderModal({
               isLoading={isSubmitting}
               loadingText="Registrando pedido..."
             >
-              Confirmar Pedido ({formatCurrency(totalOrderAmount)})
+              Criar Pedido {items.length > 0 ? `(${formatCurrency(totalOrderAmount)})` : ''}
             </LoadingButton>
           </div>
         </form>

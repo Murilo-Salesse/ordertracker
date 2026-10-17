@@ -1,8 +1,9 @@
 import { ProblemDetailError } from '../types'
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api'
-const STORAGE_TOKEN_KEY = '@foody:token'
-const STORAGE_USER_KEY = '@foody:user'
+export const STORAGE_TOKEN_KEY = '@foody:token'
+export const STORAGE_USER_KEY = '@foody:user'
+export const STORAGE_REMEMBER_EMAIL_KEY = '@foody:remembered_email'
 
 export class ApiError extends Error {
   status: number
@@ -17,12 +18,14 @@ export class ApiError extends Error {
 }
 
 export function getStoredToken(): string | null {
-  return localStorage.getItem(STORAGE_TOKEN_KEY)
+  return localStorage.getItem(STORAGE_TOKEN_KEY) || sessionStorage.getItem(STORAGE_TOKEN_KEY)
 }
 
 export function clearStoredSession(): void {
   localStorage.removeItem(STORAGE_TOKEN_KEY)
   localStorage.removeItem(STORAGE_USER_KEY)
+  sessionStorage.removeItem(STORAGE_TOKEN_KEY)
+  sessionStorage.removeItem(STORAGE_USER_KEY)
 }
 
 export async function apiRequest<T>(
