@@ -47,10 +47,16 @@ cd backend
 ```
 *(No Windows PowerShell/CMD, utilize `.\mvnw.cmd spring-boot:run` ou execute a classe `OrdertrackerApplication` diretamente pela sua IDE).*
 
-Ao iniciar, o **Flyway** criará automaticamente o arquivo `ordertracker.db` e executará as 3 migrations:
+Ao iniciar, o **Flyway** criará automaticamente o arquivo `ordertracker.db` e executará as 4 migrations:
 - `V1__create_users_table.sql`: estrutura de usuários
 - `V2__create_orders_tables.sql`: tabelas `orders` e `order_items`
-- `V3__seed_initial_orders.sql`: 5 pedidos iniciais em diferentes status para facilitar a avaliação imediata
+- `V3__seed_initial_orders.sql`: 5 pedidos iniciais em diferentes status
+- `V4__add_user_id_to_orders.sql`: isolamento multi-tenant de pedidos por conta e provisionamento de usuário padrão
+
+> **Credenciais padrão para acesso imediato:**
+> - **E-mail:** `admin@foodydelivery.com`
+> - **Senha:** `123456`
+> *(Você também pode criar uma nova conta a qualquer momento na tela de registro).*
 
 #### Executando os testes e relatório de cobertura (JaCoCo)
 ```bash

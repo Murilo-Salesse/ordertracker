@@ -100,7 +100,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"murilo@foodydelivery.com\",\n  \"password\": \"123456\"\n}"
+              "raw": "{\n  \"email\": \"admin@foodydelivery.com\",\n  \"password\": \"123456\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/auth/login",
